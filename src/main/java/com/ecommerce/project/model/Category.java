@@ -1,6 +1,11 @@
 package com.ecommerce.project.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+
+@Entity
 public class Category {
+    @Id
     private Long categoryId;
     private String categoryName;
 
@@ -24,5 +29,13 @@ public class Category {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    @Override
+    public String toString() {
+        return "Category{" +
+                "categoryId=" + categoryId +
+                ", categoryName='" + categoryName + '\'' +
+                '}';
     }
 }
