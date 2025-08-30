@@ -18,14 +18,15 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-//    @GetMapping("/public/categories")                      can use this or the below one
-    @RequestMapping(value = "/public/categories", method = RequestMethod.GET)
+    @GetMapping("/public/categories")                      //can use this or the below one
+//    @RequestMapping(value = "/public/categories", method = RequestMethod.GET)
     private ResponseEntity<List<Category>> getAllCategories(){
         List<Category> catogories = categoryService.getAllCatogories();
         return new ResponseEntity<>(catogories, HttpStatus.OK);
     }
 
-    @PostMapping("/public/categories")
+//    @PostMapping("/public/categories")
+    @RequestMapping(value = "/public/categories", method = RequestMethod.POST)
     public ResponseEntity createCategory(@RequestBody Category category){
         categoryService.createCategory(category);
         return new ResponseEntity<>("Category added successfully", HttpStatus.CREATED);
