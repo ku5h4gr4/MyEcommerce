@@ -5,7 +5,6 @@ import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.Cart;
 import com.ecommerce.project.model.CartItem;
 import com.ecommerce.project.model.Product;
-import com.ecommerce.project.model.User;
 import com.ecommerce.project.payload.CartDTO;
 import com.ecommerce.project.payload.ProductDTO;
 import com.ecommerce.project.repositories.CartItemRepository;
@@ -15,7 +14,6 @@ import com.ecommerce.project.util.AuthUtil;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -88,6 +86,7 @@ public class CartServiceImpl implements CartService{
 
     }
 
+
     @Override
     public List<CartDTO> getAllCarts() {
         List<Cart> carts = cartRepository.findAll();
@@ -108,6 +107,7 @@ public class CartServiceImpl implements CartService{
 
     }
 
+
     @Override
     public CartDTO getCart(String emailId, Long cartId) {
         Cart cart = cartRepository.findCartByEmailAndCartId(emailId, cartId);
@@ -123,6 +123,7 @@ public class CartServiceImpl implements CartService{
         cartDTO.setProducts(products);
         return cartDTO;
     }
+
 
     @Override
     @Transactional
@@ -150,11 +151,22 @@ public class CartServiceImpl implements CartService{
             throw new ApiException("Product "+product.getProductName()+" is not available in cart!!!");
         }
 
+        int newQuantity = cartItem.getQuantity() + quantity;
+        if(newQuantity < 0){
+            throw new ApiException("The resulting quantity cannot be negative");
+        }
+
+        if(newQuantity ==0){
+            deleteCartProduct(cartId, productId);
+        }
+        else{
         cartItem.setProductPrice(product.getSpecialPrice());
         cartItem.setQuantity(cartItem.getQuantity()+quantity);
         cartItem.setDiscount(product.getDiscount());
         cart.setTotalPrice(cart.getTotalPrice() + (cartItem.getProductPrice()*quantity));
         cartRepository.save(cart);
+        }
+
         CartItem updatedItem = cartItemRepository.save(cartItem);
         if(updatedItem.getQuantity()==0){
             cartItemRepository.deleteById(updatedItem.getCartItemId());
@@ -171,6 +183,8 @@ public class CartServiceImpl implements CartService{
         return cartDTO;
     }
 
+
+    @Transactional
     @Override
     public String deleteCartProduct(Long cartId, Long productId) {
         Cart cart = cartRepository.findById(cartId)
@@ -186,6 +200,31 @@ public class CartServiceImpl implements CartService{
         cartItemRepository.deleteCartItemByCartIdAndProductId(cartId, productId);
 
         return "Product "+cartItem.getProduct().getProductName()+" is removed from the cart!!";
+    }
+
+    @Override
+    public void updateProductInCarts(Long cartId, Long productId) {
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(()-> new ResourceNotFoundException("Cart","cartId",cartId));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "productId",productId));
+
+        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cartId,productId);
+
+        if(cartItem ==null){
+            throw new ApiException("Product "+product.getProductName()+" is not available in the cart!!");
+        }
+
+        // if we update the product price then we need to remove the old price from cart and add new price
+        double cartPrice = cart.getTotalPrice() - cartItem.getProductPrice() * cartItem.getQuantity();
+
+        cartItem.setProductPrice(product.getSpecialPrice());
+
+        cart.setTotalPrice(cartItem.getProductPrice() * cartItem.getQuantity());
+
+        cartItemRepository.save(cartItem);
+
     }
 
 
