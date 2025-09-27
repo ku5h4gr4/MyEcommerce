@@ -5,13 +5,13 @@ import com.ecommerce.project.payload.AddressDTO;
 import com.ecommerce.project.service.AddressService;
 import com.ecommerce.project.util.AuthUtil;
 import jakarta.validation.Valid;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -32,4 +32,24 @@ public class AddressController {
     }
 
 
+    @GetMapping("/addresses")
+    public ResponseEntity<List<AddressDTO>> getAllAddress(){
+        List<AddressDTO> allAddresses = addressService.getAllAddress();
+        return new ResponseEntity<>(allAddresses, HttpStatus.OK);
+    }
+
+
+    @GetMapping("addresses/{addressId}")
+    public ResponseEntity<AddressDTO> getAddressById(@PathVariable Long addressId){
+        AddressDTO address = addressService.getAddressById(addressId);
+        return new ResponseEntity<>(address, HttpStatus.FOUND);
+    }
+
+
+    @GetMapping("/users/addresses")
+    public ResponseEntity<List<AddressDTO>> getUserAddresses(){
+        User user = authUtil.loggedInUser();
+        List<AddressDTO> address = addressService.getAddressesByLoggedUser(user);
+        return new ResponseEntity<>(address,HttpStatus.OK);
+    }
 }
