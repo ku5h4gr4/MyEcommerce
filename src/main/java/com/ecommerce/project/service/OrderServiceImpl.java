@@ -4,8 +4,10 @@ import com.ecommerce.project.exceptions.ApiException;
 import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.*;
 import com.ecommerce.project.payload.OrderDTO;
+import com.ecommerce.project.payload.OrderItemDTO;
 import com.ecommerce.project.repositories.*;
 import jakarta.transaction.Transactional;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +33,15 @@ public class OrderServiceImpl implements OrderService{
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private CartService cartService;
+
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
     @Transactional
     public OrderDTO placeOrder(String emailId, Long addressId, String paymentMethod, String pgName, String pgPaymentId, String pgStatus, String pgResponseMessage) {
@@ -49,6 +60,7 @@ public class OrderServiceImpl implements OrderService{
         order.setOrderDate(LocalDate.now());
         order.setTotalAmount(cart.getTotalPrice());
         order.setAddress(address);
+        order.setOrderStatus("PLACED");
 
         Payment payment = new Payment(paymentMethod, pgPaymentId, pgStatus, pgResponseMessage, pgName);
         payment.setOrder(order);
@@ -75,6 +87,26 @@ public class OrderServiceImpl implements OrderService{
 
         orderItems = orderItemRepository.saveAll(orderItems);
 
-        return null;
+        cart.getCartItems().forEach(item -> {
+            int quantity = item.getQuantity();
+            Product product = item.getProduct();
+            product.setQuantity(product.getQuantity()- quantity);
+            productRepository.save(product);
+
+            // CLEAR THE CART
+            cartService.deleteCartProduct(cart.getCartId(),item.getProduct().getProductId());
+        });
+
+        OrderDTO orderDTO = modelMapper.map(savedOrder,OrderDTO.class);
+
+        if (orderDTO.getOrderItem() == null) {
+            orderDTO.setOrderItem(new ArrayList<>());
+        }
+        orderItems.forEach(item-> orderDTO.getOrderItem()
+                .add(modelMapper.map(item, OrderItemDTO.class)));
+
+        orderDTO.setAddressId(addressId);
+
+        return orderDTO;
     }
 }
