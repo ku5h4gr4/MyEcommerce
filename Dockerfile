@@ -1,13 +1,12 @@
-# 1. Build stage: build with Maven
-FROM maven:3.8.3-openjdk-17 AS build
+# 1. Build stage: Java 21 + Maven
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# 2. Package / Runtime stage: run the JAR
-FROM eclipse-temurin:17-jdk-alpine
+# 2. Runtime stage: Java 21 JDK
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
-# copy the built jar from the build stage
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
